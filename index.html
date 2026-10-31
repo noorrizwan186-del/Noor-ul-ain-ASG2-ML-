@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pharma ML Predictor</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f7fb; color: #202938; margin: 0; }
+    header { background: #174a6e; color: white; padding: 28px 16px; text-align: center; }
+    main { max-width: 950px; margin: 24px auto; padding: 0 16px; display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 18px; }
+    section { background: white; padding: 22px; border-radius: 12px; box-shadow: 0 2px 12px #00000012; }
+    label { display: block; font-size: 14px; margin-top: 12px; font-weight: bold; }
+    input { width: 100%; box-sizing: border-box; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { margin-top: 18px; padding: 11px 15px; border: 0; border-radius: 6px; color: white; background: #176b87; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0f526b; }
+    .result { margin-top: 14px; padding: 10px; background: #eef7f9; border-radius: 6px; min-height: 20px; }
+    .note { max-width: 950px; margin: 0 auto 24px; padding: 0 16px; color: #536273; font-size: 14px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Pharmaceutical Machine Learning App</h1>
+  <p>Predict medicine price and availability using trained ML models</p>
+</header>
+<main>
+  <section>
+    <h2>1. Price Prediction</h2>
+    <form id="regForm">
+      <label>Medicine name</label><input name="Name" value="Zestril" required>
+      <label>Company</label><input name="Company" value="ICI Pakistan Limited" required>
+      <label>Price before discount (PKR)</label><input name="Price_before_numeric" type="number" min="0" step="0.01" value="202" required>
+      <label>Discount percentage</label><input name="Discount_percent" type="number" min="0" max="100" step="0.1" value="10" required>
+      <label>Pack size</label><input name="Pack_Size" value="1x14's" required>
+      <button type="submit">Predict price</button>
+    </form>
+    <div class="result" id="regResult">Your predicted price will appear here.</div>
+  </section>
+  <section>
+    <h2>2. Availability Classification</h2>
+    <form id="classForm">
+      <label>Medicine name</label><input name="Name" value="Zestril" required>
+      <label>Company</label><input name="Company" value="ICI Pakistan Limited" required>
+      <label>Price before discount (PKR)</label><input name="Price_before_numeric" type="number" min="0" step="0.01" value="202" required>
+      <label>Discount percentage</label><input name="Discount_percent" type="number" min="0" max="100" step="0.1" value="10" required>
+      <label>Pack size</label><input name="Pack_Size" value="1x14's" required>
+      <label>Price after discount (PKR)</label><input name="Price_After" type="number" min="0" step="0.01" value="182" required>
+      <button type="submit">Predict availability</button>
+    </form>
+    <div class="result" id="classResult">Predicted availability will appear here.</div>
+  </section>
+</main>
+<p class="note">Educational project only. Predictions reflect patterns in the supplied dataset and should not be used for real medicine purchasing or medical decisions.</p>
+<script>
+  async function sendForm(formId, endpoint, resultId, formatResult) {
+    const form = document.getElementById(formId);
+    const result = document.getElementById(resultId);
+    form.addEventListener("submit", async function(event) {
+      event.preventDefault();
+      result.textContent = "Please wait...";
+      const values = Object.fromEntries(new FormData(form).entries());
+      for (const key of Object.keys(values)) {
+        if (["Price_before_numeric", "Discount_percent", "Price_After"].includes(key)) {
+          values[key] = Number(values[key]);
+        }
+      }
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(values)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail ? JSON.stringify(data.detail) : "Request failed");
+        result.textContent = formatResult(data);
+      } catch (error) {
+        result.textContent = "Error: " + error.message + ". Check that FastAPI is running.";
+      }
+    });
+  }
+  sendForm("regForm", "/predict/regression", "regResult",
+    data => "Predicted final price: PKR " + data.predicted_price_pkr);
+  sendForm("classForm", "/predict/classification", "classResult",
+    data => "Predicted availability: " + data.predicted_availability);
+</script>
+</body>
+</html>
